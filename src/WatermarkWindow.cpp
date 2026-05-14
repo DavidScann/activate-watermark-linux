@@ -15,7 +15,6 @@ WatermarkWindow::WatermarkWindow(QWidget *parent)
     setAttribute(Qt::WA_TranslucentBackground);
     setAttribute(Qt::WA_TransparentForMouseEvents);
     setAttribute(Qt::WA_ShowWithoutActivating);
-    setAttribute(Qt::WA_X11DoNotPropagateOpacity);
 
     QFont sysFont = QFontDatabase::systemFont(QFontDatabase::GeneralFont);
     m_line1Font = sysFont;
