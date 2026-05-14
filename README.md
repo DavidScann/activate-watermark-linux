@@ -13,17 +13,18 @@ A humorous desktop overlay that mimics the "Activate Windows" watermark, ported 
 **Wayland** (recommended for full overlay support):
 - LayerShellQt (KDE library for `zwlr-layer-shell` protocol)
 - Qt6 WaylandClient module
+- wayland-client library (for input region clearing)
 
 On Fedora/KDE:
 ```bash
 sudo dnf install gcc-c++ cmake qt6-qtbase-devel \
-  qt6-qtwayland-devel layershell-qt-devel
+  qt6-qtwayland-devel layershell-qt-devel wayland-devel
 ```
 
 On Debian/Ubuntu/KDE:
 ```bash
 sudo apt install build-essential cmake qt6-base-dev \
-  qt6-wayland liblayershellqt-dev
+  qt6-wayland liblayershellqt-dev libwayland-dev
 ```
 
 On other distros/WMs, the app falls back to X11 (XWayland) mode automatically.

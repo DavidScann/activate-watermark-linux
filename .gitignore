@@ -1,0 +1,5 @@
+build/
+CMakeFiles/
+*.o
+*.autogen
+moc_*
