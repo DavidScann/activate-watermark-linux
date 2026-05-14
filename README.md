@@ -1,5 +1,7 @@
 # 💀 Activate Watermark
 
+> **Linux port** of [activate-watermark](https://github.com/DavidScann/activate-watermark) by [DavidScann](https://github.com/DavidScann). Original concept and Windows implementation by the same legend. This version brings the same unhinged energy to Linux because Wayland girlies deserve aura too.
+
 > *no cap this is the most unhinged thing i've ever ported and i'm lowkey proud of it*
 
 A tiny program that slaps the classic **"Activate Windows"** watermark on your desktop — now also for **Linux** because why should Windows have all the aura. Always on top. Click-through. Just like the real thing — except you're doing it *on purpose*. absolute cinema.
