@@ -10,8 +10,7 @@ WatermarkWindow::WatermarkWindow(QWidget *parent)
 {
     setWindowFlags(Qt::FramelessWindowHint
                    | Qt::WindowStaysOnTopHint
-                   | Qt::Tool
-                   | Qt::X11BypassWindowManagerHint);
+                   | Qt::Tool);
     setAttribute(Qt::WA_TranslucentBackground);
     setAttribute(Qt::WA_TransparentForMouseEvents);
     setAttribute(Qt::WA_ShowWithoutActivating);
@@ -41,6 +40,7 @@ void WatermarkWindow::applySettings(const Settings &settings)
 
 void WatermarkWindow::updatePosition()
 {
+    raise();
     QScreen *screen = QGuiApplication::primaryScreen();
     if (!screen) return;
 
