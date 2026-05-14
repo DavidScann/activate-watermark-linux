@@ -7,6 +7,8 @@ set(CMAKE_AUTOMOC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
+find_package(LayerShellQt QUIET)
+
 add_executable(activate-watermark
     src/main.cpp
     src/WatermarkWindow.cpp
@@ -14,6 +16,12 @@ add_executable(activate-watermark
 )
 
 target_link_libraries(activate-watermark PRIVATE Qt6::Widgets)
+
+if(LayerShellQt_FOUND)
+    message(STATUS "LayerShellQt found - Wayland overlay support enabled")
+    target_link_libraries(activate-watermark PRIVATE LayerShellQt::Interface)
+    target_compile_definitions(activate-watermark PRIVATE HAVE_LAYERSHELL)
+endif()
 
 target_sources(activate-watermark PRIVATE
     src/WatermarkWindow.h

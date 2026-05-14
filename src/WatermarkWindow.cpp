@@ -5,6 +5,10 @@
 #include <QGuiApplication>
 #include <QFontDatabase>
 
+#ifdef HAVE_LAYERSHELL
+#include <LayerShellQt/window.h>
+#endif
+
 WatermarkWindow::WatermarkWindow(QWidget *parent)
     : QWidget(parent)
 {
@@ -34,52 +38,86 @@ void WatermarkWindow::applySettings(const Settings &settings)
 {
     m_settings = settings;
     rebuildFonts();
-    updatePosition();
+    reposition();
     update();
 }
 
-void WatermarkWindow::updatePosition()
+QSize WatermarkWindow::calculateSize() const
 {
-    raise();
-    QScreen *screen = QGuiApplication::primaryScreen();
-    if (!screen) return;
-
-    QRect avail = screen->availableGeometry();
-    const int margin = 20;
-
     QFontMetrics fm1(m_line1Font);
     QFontMetrics fm2(m_line2Font);
     QRect bounds1 = fm1.boundingRect(m_settings.line1);
     QRect bounds2 = fm2.boundingRect(m_settings.line2);
 
-    int lineSpacing = 2;
     int maxW = qMax(bounds1.width(), bounds2.width());
-    int totalH = bounds1.height() + lineSpacing + bounds2.height();
-    int winW = maxW + 8;
-    int winH = totalH + 4;
+    int totalH = bounds1.height() + 2 + bounds2.height();
+    return QSize(maxW + 8, totalH + 4);
+}
 
+void WatermarkWindow::reposition()
+{
+    QSize size = calculateSize();
+
+#ifdef HAVE_LAYERSHELL
+    if (QGuiApplication::platformName() == "wayland") {
+        auto *handle = windowHandle();
+        if (!handle) return;
+        auto *layerWin = LayerShellQt::Window::get(handle);
+        if (!layerWin) return;
+
+        layerWin->setDesiredSize(size);
+        layerWin->setLayer(LayerShellQt::Window::LayerOverlay);
+
+        auto anch = [&]() -> LayerShellQt::Window::Anchors {
+            using A = LayerShellQt::Window::Anchor;
+            switch (m_settings.position) {
+            case 0: return LayerShellQt::Window::Anchors(A::AnchorBottom) | A::AnchorRight;
+            case 1: return LayerShellQt::Window::Anchors(A::AnchorBottom) | A::AnchorLeft;
+            case 2: return LayerShellQt::Window::Anchors(A::AnchorTop) | A::AnchorRight;
+            case 3: return LayerShellQt::Window::Anchors(A::AnchorTop) | A::AnchorLeft;
+            }
+            return {};
+        }();
+        layerWin->setAnchors(anch);
+        layerWin->setMargins(QMargins(20, 20, 20, 20));
+        layerWin->setKeyboardInteractivity(LayerShellQt::Window::KeyboardInteractivityNone);
+        layerWin->setExclusiveZone(0);
+        return;
+    }
+#endif
+
+    raise();
+    QScreen *screen = QGuiApplication::primaryScreen();
+    if (!screen) return;
+
+    QRect avail = screen->availableGeometry();
     int x, y;
     switch (m_settings.position) {
-    case 0: // bottom-right
-        x = avail.right() - winW - margin;
-        y = avail.bottom() - winH - margin;
+    case 0:
+        x = avail.right() - size.width() - 20;
+        y = avail.bottom() - size.height() - 20;
         break;
-    case 1: // bottom-left
-        x = avail.left() + margin;
-        y = avail.bottom() - winH - margin;
+    case 1:
+        x = avail.left() + 20;
+        y = avail.bottom() - size.height() - 20;
         break;
-    case 2: // top-right
-        x = avail.right() - winW - margin;
-        y = avail.top() + margin;
+    case 2:
+        x = avail.right() - size.width() - 20;
+        y = avail.top() + 20;
         break;
-    case 3: // top-left
+    case 3:
     default:
-        x = avail.left() + margin;
-        y = avail.top() + margin;
+        x = avail.left() + 20;
+        y = avail.top() + 20;
         break;
     }
 
-    setGeometry(x, y, winW, winH);
+    setGeometry(x, y, size.width(), size.height());
+}
+
+void WatermarkWindow::updatePosition()
+{
+    reposition();
 }
 
 void WatermarkWindow::paintEvent(QPaintEvent *)

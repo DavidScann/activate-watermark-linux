@@ -23,6 +23,8 @@ private:
     QFont m_line2Font;
 
     void rebuildFonts();
+    void reposition();
+    QSize calculateSize() const;
 };
 
 #endif // WATERMARKWINDOW_H

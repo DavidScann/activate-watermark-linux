@@ -16,6 +16,7 @@ int main(int argc, char *argv[])
     WatermarkWindow watermark;
     watermark.applySettings(defaultSettings);
     watermark.show();
+    watermark.winId();
     watermark.updatePosition();
 
     TrayManager tray;
