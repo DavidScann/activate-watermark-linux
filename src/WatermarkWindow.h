@@ -25,6 +25,8 @@ private:
     void rebuildFonts();
     void reposition();
     QSize calculateSize() const;
+    void setupWayland();
+    bool m_waylandInitialized = false;
 };
 
 #endif // WATERMARKWINDOW_H

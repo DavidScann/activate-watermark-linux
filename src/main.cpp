@@ -4,20 +4,20 @@
 
 int main(int argc, char *argv[])
 {
+    if (qEnvironmentVariableIsEmpty("QT_WAYLAND_SHELL_INTEGRATION"))
+        qputenv("QT_WAYLAND_SHELL_INTEGRATION", "layer-shell");
+
     QApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("activate-watermark"));
     app.setQuitOnLastWindowClosed(false);
 
     Settings defaultSettings;
-    // Default Linux-themed text
     defaultSettings.line1 = QStringLiteral("Activate Linux");
     defaultSettings.line2 = QStringLiteral("Go to Settings to activate Linux.");
 
     WatermarkWindow watermark;
     watermark.applySettings(defaultSettings);
     watermark.show();
-    watermark.winId();
-    watermark.updatePosition();
 
     TrayManager tray;
     tray.show();

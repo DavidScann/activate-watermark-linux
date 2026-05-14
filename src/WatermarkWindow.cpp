@@ -8,6 +8,10 @@
 #ifdef HAVE_LAYERSHELL
 #include <LayerShellQt/window.h>
 #endif
+#ifdef HAVE_WAYLAND_CLIENT
+#include <QtGui/qpa/qplatformnativeinterface.h>
+#include <wayland-client.h>
+#endif
 
 WatermarkWindow::WatermarkWindow(QWidget *parent)
     : QWidget(parent)
@@ -22,6 +26,8 @@ WatermarkWindow::WatermarkWindow(QWidget *parent)
     QFont sysFont = QFontDatabase::systemFont(QFontDatabase::GeneralFont);
     m_line1Font = sysFont;
     m_line2Font = sysFont;
+
+    QTimer::singleShot(0, this, &WatermarkWindow::updatePosition);
 
     connect(&m_refreshTimer, &QTimer::timeout, this, &WatermarkWindow::updatePosition);
     m_refreshTimer.setInterval(5000);
@@ -40,6 +46,56 @@ void WatermarkWindow::applySettings(const Settings &settings)
     rebuildFonts();
     reposition();
     update();
+}
+
+void WatermarkWindow::setupWayland()
+{
+    if (m_waylandInitialized) return;
+
+    auto *handle = windowHandle();
+    if (!handle || !isVisible())
+        return;
+
+#ifdef HAVE_WAYLAND_CLIENT
+    auto *native = QGuiApplication::platformNativeInterface();
+    if (!native) return;
+
+    auto *display = static_cast<wl_display*>(
+        native->nativeResourceForIntegration("display"));
+    auto *surface = static_cast<wl_surface*>(
+        native->nativeResourceForWindow("surface", handle));
+    if (!display || !surface) return;
+
+    struct wl_registry *registry = wl_display_get_registry(display);
+    struct Listener {
+        wl_compositor *compositor = nullptr;
+        static void global(void *data, struct wl_registry *reg,
+                           uint32_t name, const char *iface, uint32_t ver) {
+            auto *l = static_cast<Listener*>(data);
+            if (strcmp(iface, "wl_compositor") == 0) {
+                auto *proxy = wl_registry_bind(reg, name, &wl_compositor_interface, 4);
+                if (proxy)
+                    l->compositor = static_cast<wl_compositor*>(proxy);
+            }
+        }
+        static void globalRemove(void*, struct wl_registry*, uint32_t) {}
+    };
+    Listener listener;
+    wl_registry_listener rl;
+    rl.global = Listener::global;
+    rl.global_remove = Listener::globalRemove;
+    wl_registry_add_listener(registry, &rl, &listener);
+    wl_display_roundtrip(display);
+    wl_registry_destroy(registry);
+
+    if (!listener.compositor) return;
+
+    struct wl_region *empty = wl_compositor_create_region(listener.compositor);
+    wl_surface_set_input_region(surface, empty);
+    wl_region_destroy(empty);
+    wl_surface_commit(surface);
+    m_waylandInitialized = true;
+#endif
 }
 
 QSize WatermarkWindow::calculateSize() const
@@ -63,25 +119,34 @@ void WatermarkWindow::reposition()
         auto *handle = windowHandle();
         if (!handle) return;
         auto *layerWin = LayerShellQt::Window::get(handle);
-        if (!layerWin) return;
+        if (layerWin) {
+            layerWin->setDesiredSize(size);
+            layerWin->setLayer(LayerShellQt::Window::LayerOverlay);
 
-        layerWin->setDesiredSize(size);
-        layerWin->setLayer(LayerShellQt::Window::LayerOverlay);
-
-        auto anch = [&]() -> LayerShellQt::Window::Anchors {
             using A = LayerShellQt::Window::Anchor;
             switch (m_settings.position) {
-            case 0: return LayerShellQt::Window::Anchors(A::AnchorBottom) | A::AnchorRight;
-            case 1: return LayerShellQt::Window::Anchors(A::AnchorBottom) | A::AnchorLeft;
-            case 2: return LayerShellQt::Window::Anchors(A::AnchorTop) | A::AnchorRight;
-            case 3: return LayerShellQt::Window::Anchors(A::AnchorTop) | A::AnchorLeft;
+            case 0:
+                layerWin->setAnchors(LayerShellQt::Window::Anchors(A::AnchorBottom) | A::AnchorRight);
+                layerWin->setMargins(QMargins(0, 0, 20, 20));
+                break;
+            case 1:
+                layerWin->setAnchors(LayerShellQt::Window::Anchors(A::AnchorBottom) | A::AnchorLeft);
+                layerWin->setMargins(QMargins(20, 0, 0, 20));
+                break;
+            case 2:
+                layerWin->setAnchors(LayerShellQt::Window::Anchors(A::AnchorTop) | A::AnchorRight);
+                layerWin->setMargins(QMargins(0, 20, 20, 0));
+                break;
+            case 3:
+                layerWin->setAnchors(LayerShellQt::Window::Anchors(A::AnchorTop) | A::AnchorLeft);
+                layerWin->setMargins(QMargins(20, 20, 0, 0));
+                break;
             }
-            return {};
-        }();
-        layerWin->setAnchors(anch);
-        layerWin->setMargins(QMargins(20, 20, 20, 20));
-        layerWin->setKeyboardInteractivity(LayerShellQt::Window::KeyboardInteractivityNone);
-        layerWin->setExclusiveZone(0);
+            layerWin->setKeyboardInteractivity(LayerShellQt::Window::KeyboardInteractivityNone);
+            layerWin->setExclusiveZone(0);
+        }
+
+        setupWayland();
         return;
     }
 #endif
