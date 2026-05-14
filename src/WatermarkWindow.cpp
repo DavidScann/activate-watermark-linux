@@ -102,11 +102,13 @@ QSize WatermarkWindow::calculateSize() const
 {
     QFontMetrics fm1(m_line1Font);
     QFontMetrics fm2(m_line2Font);
-    QRect bounds1 = fm1.boundingRect(m_settings.line1);
-    QRect bounds2 = fm2.boundingRect(m_settings.line2);
+    int w1 = fm1.horizontalAdvance(m_settings.line1);
+    int w2 = fm2.horizontalAdvance(m_settings.line2);
+    int h1 = fm1.ascent() + fm1.descent();
+    int h2 = fm2.ascent() + fm2.descent();
 
-    int maxW = qMax(bounds1.width(), bounds2.width());
-    int totalH = bounds1.height() + 2 + bounds2.height();
+    int maxW = qMax(w1, w2);
+    int totalH = h1 + 2 + h2;
     return QSize(maxW + 8, totalH + 4);
 }
 
@@ -193,13 +195,15 @@ void WatermarkWindow::paintEvent(QPaintEvent *)
 
     QColor textColor(255, 255, 255, m_settings.alpha);
 
+    QFontMetrics fm1(m_line1Font);
+    QFontMetrics fm2(m_line2Font);
+    int h1 = fm1.ascent() + fm1.descent();
+
     painter.setFont(m_line1Font);
     painter.setPen(textColor);
-    QRectF line1Rect = painter.fontMetrics().boundingRect(m_settings.line1);
-    painter.drawText(0, line1Rect.height(), m_settings.line1);
+    painter.drawText(0, fm1.ascent(), m_settings.line1);
 
     painter.setFont(m_line2Font);
-    int line2Y = line1Rect.height() + 2;
-    QRectF line2Rect = painter.fontMetrics().boundingRect(m_settings.line2);
-    painter.drawText(0, line2Y + line2Rect.height(), m_settings.line2);
+    painter.setPen(textColor);
+    painter.drawText(0, h1 + 2 + fm2.ascent(), m_settings.line2);
 }
